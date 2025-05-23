@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/entries', require('./routes/entryRoutes'));
-// app.use('/api/categories', require('./routes/categoryRoutes')); // We'll add this next
+app.use('/api/categories', require('./routes/categoryRoutes'));
 
 const PORT = process.env.PORT || 5001; // Use port from .env or default to 5001
 
