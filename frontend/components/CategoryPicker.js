@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useBudget } from '../store/BudgetContext';
+import InputModal from './InputModal';
 
 const NEW_CATEGORY_VALUE = '__NEW_CATEGORY__';
 
 const CategoryPicker = ({ selectedValue, onValueChange, style }) => {
   const { categories, fetchCategories, addCategory, loading: categoriesLoading } = useBudget();
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
     // Categories are fetched initially by BudgetContext, 
@@ -16,29 +18,25 @@ const CategoryPicker = ({ selectedValue, onValueChange, style }) => {
     // }
   }, [categories, fetchCategories]);
 
-  const handleValueChange = async (itemValue, itemIndex) => {
+  const handleAddNewCategory = async (newCategoryName) => {
+    if (newCategoryName && newCategoryName.trim() !== '') {
+      const newCategory = await addCategory(newCategoryName.trim());
+      if (newCategory && newCategory._id) {
+        onValueChange(newCategory._id); // Pass back the ID of the new category
+      } else {
+        // Handle error or if category wasn't added (e.g., duplicate name handled by context/API)
+        // Revert to previously selected value or default if necessary, or show an alert
+        onValueChange(selectedValue); 
+        Alert.alert("Error", "Could not add category. It might already exist or there was a server issue.");
+      }
+    } else {
+        onValueChange(selectedValue); // Revert if submission was empty
+    }
+  };
+
+  const handleValueChange = (itemValue, itemIndex) => {
     if (itemValue === NEW_CATEGORY_VALUE) {
-      // Prompt for new category name
-      Alert.prompt(
-        'Add New Category',
-        'Enter the name for the new category:',
-        async (newCategoryName) => {
-          if (newCategoryName && newCategoryName.trim() !== '') {
-            const newCategory = await addCategory(newCategoryName.trim());
-            if (newCategory && newCategory._id) {
-              onValueChange(newCategory._id); // Pass back the ID of the new category
-            } else {
-              // Handle error or if category wasn't added (e.g., duplicate name handled by context/API)
-              onValueChange(selectedValue); // Revert to previously selected value or default
-            }
-          } else {
-            // User cancelled or entered empty name
-            onValueChange(selectedValue); // Revert
-          }
-        },
-        'plain-text',
-        '' // Default value for prompt
-      );
+      setIsModalVisible(true);
     } else {
       onValueChange(itemValue);
     }
@@ -68,6 +66,17 @@ const CategoryPicker = ({ selectedValue, onValueChange, style }) => {
           <Picker.Item key={item.value || 'placeholder'} label={item.label} value={item.value} />
         ))}
       </Picker>
+      <InputModal
+        visible={isModalVisible}
+        onClose={() => {
+            setIsModalVisible(false);
+            onValueChange(selectedValue); // Revert to previous selection if modal is closed without submit
+        }}
+        onSubmit={handleAddNewCategory}
+        title="Add New Category"
+        placeholder="Enter category name"
+        submitButtonText="Add Category"
+      />
     </View>
   );
 };

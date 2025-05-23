@@ -4,7 +4,7 @@ import axios from 'axios';
 // Android Emulator typically uses 10.0.2.2 to access the host machine's localhost
 // For physical devices, use your machine's local network IP.
 // For iOS simulator, localhost usually works.
-const BASE_URL = 'http://10.0.2.2:5001/api'; // Adjust if your backend port is different or if not using Android emulator
+const BASE_URL = 'http://192.168.77.221:5001/api'; // Adjust if your backend port is different or if not using Android emulator
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
