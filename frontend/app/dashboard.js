@@ -6,7 +6,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Collapsible from 'react-native-collapsible';
 import { FontAwesome } from '@expo/vector-icons';
-import { BarChart, PieChart } from 'react-native-chart-kit';
+import { PieChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -25,10 +25,6 @@ const chartConfig = {
     strokeWidth: "2",
     stroke: "#2563eb",
   },
-  propsForBackgroundLines: {
-    strokeDasharray: "",
-    stroke: "#e0e0e0",
-  }
 };
 
 const PREDEFINED_PERIODS = {
@@ -47,13 +43,26 @@ export default function DashboardScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState(null);
 
-  const [isOverallSummaryCollapsed, setIsOverallSummaryCollapsed] = useState(false);
-  const [isCategorySummaryCollapsed, setIsCategorySummaryCollapsed] = useState(false);
-  const [isChartsCollapsed, setIsChartsCollapsed] = useState(false);
+  const [isOverallSummaryCollapsed, setIsOverallSummaryCollapsed] = useState(true);
+  const [isCategorySummaryCollapsed, setIsCategorySummaryCollapsed] = useState(true);
+  const [isChartsCollapsed, setIsChartsCollapsed] = useState(true);
+
+  useEffect(() => {
+    setIsOverallSummaryCollapsed(false);
+    setIsCategorySummaryCollapsed(false);
+  }, []);
 
   useEffect(() => {
     updateDatesForPeriod(selectedPeriod);
   }, [selectedPeriod]);
+
+  useEffect(() => {
+    if (summaryData && (!summaryData.hasData || summaryData.pieChartData.length === 0)) {
+        setIsChartsCollapsed(true);
+    } else if (summaryData) {
+        setIsChartsCollapsed(false);
+    }
+  }, [summaryData]);
 
   const updateDatesForPeriod = (period) => {
     const today = new Date();
@@ -86,13 +95,12 @@ export default function DashboardScreen() {
   
   const handleDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || (datePickerTarget === 'start' ? filterStartDate : filterEndDate);
-    setShowDatePicker(Platform.OS === 'ios');
     if (event.type === 'dismissed') {
       setShowDatePicker(false);
       setDatePickerTarget(null);
       return;
     }
-    if (currentDate) {
+    if (selectedDate) {
       if (datePickerTarget === 'start') setFilterStartDate(currentDate);
       else setFilterEndDate(currentDate);
     }
@@ -127,7 +135,6 @@ export default function DashboardScreen() {
       netBalance: 0,
       categorySummary: [],
       pieChartData: [],
-      barChartData: { labels: [], datasets: [{ data: [] }] },
       hasData: false,
     };
 
@@ -140,7 +147,7 @@ export default function DashboardScreen() {
     const categoryMap = new Map();
 
     categories.forEach(cat => {
-      categoryMap.set(cat._id, { name: cat.name, income: 0, expenses: 0, entryCount: 0, color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` });
+      categoryMap.set(cat._id, { name: cat.name, income: 0, expenses: 0, entryCount: 0 });
     });
 
     processedEntries.forEach(entry => {
@@ -154,13 +161,11 @@ export default function DashboardScreen() {
         catData.expenses += entry.debit;
         catData.entryCount += 1;
       } else if (catId) {
-        const randomColor = `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`;
         categoryMap.set(catId, {
           name: entry.category?.name || 'Unknown Category',
           income: entry.credit,
           expenses: entry.debit,
           entryCount: 1,
-          color: randomColor
         });
       }
     });
@@ -173,18 +178,8 @@ export default function DashboardScreen() {
         })).sort((a,b) => b.expenses - a.expenses);
     
     const pieChartData = [];
-    if (totalIncome > 0) pieChartData.push({ name: 'Income', amount: totalIncome, color: '#27ae60', legendFontColor: '#333', legendFontSize: 14 });
-    if (totalExpenses > 0) pieChartData.push({ name: 'Expenses', amount: totalExpenses, color: '#c0392b', legendFontColor: '#333', legendFontSize: 14 });
-
-    const barChartLabels = categorySummary.filter(c => c.expenses > 0).map(c => c.name);
-    const barChartExpenseData = categorySummary.filter(c => c.expenses > 0).map(c => c.expenses);
-    const barChartData = (barChartLabels.length > 0) ? {
-        labels: barChartLabels,
-        datasets: [{
-            data: barChartExpenseData,
-            colors: categorySummary.filter(c => c.expenses > 0).map(() => (opacity = 1) => `rgba(192, 57, 43, ${opacity})`)
-        }]
-    } : initialReturn.barChartData;
+    if (totalIncome > 0) pieChartData.push({ name: 'Income', population: totalIncome, color: '#27ae60', legendFontColor: '#333', legendFontSize: 14 });
+    if (totalExpenses > 0) pieChartData.push({ name: 'Expenses', population: totalExpenses, color: '#c0392b', legendFontColor: '#333', legendFontSize: 14 });
 
     return {
       totalIncome,
@@ -192,18 +187,9 @@ export default function DashboardScreen() {
       netBalance: totalIncome - totalExpenses,
       categorySummary,
       pieChartData,
-      barChartData,
       hasData: processedEntries.length > 0,
     };
   }, [entries, categories, selectedPeriod, filterStartDate, filterEndDate]);
-
-  useEffect(() => {
-    if (!summaryData.hasData || (summaryData.barChartData.labels.length === 0 && summaryData.pieChartData.length === 0)) {
-        setIsChartsCollapsed(true);
-    } else {
-        setIsChartsCollapsed(false);
-    }
-  }, [summaryData.hasData, summaryData.barChartData, summaryData.pieChartData]);
 
   const renderCollapsibleHeader = (title, isCollapsed, onPress) => (
     <TouchableOpacity onPress={onPress} style={styles.collapsibleHeader}>
@@ -212,7 +198,9 @@ export default function DashboardScreen() {
     </TouchableOpacity>
   );
 
-  if (budgetLoading && entries.length === 0 && !summaryData.hasData) {
+  const initialDashboardLoad = budgetLoading && (!summaryData || !summaryData.hasData && entries.length === 0);
+
+  if (initialDashboardLoad) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color="#2563eb" />
@@ -221,11 +209,19 @@ export default function DashboardScreen() {
     );
   }
 
-  if (budgetError && entries.length === 0 && !summaryData.hasData) {
+  if (budgetError && (!summaryData || !summaryData.hasData)) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <Text style={styles.errorText}>Error loading data: {budgetError}</Text>
       </View>
+    );
+  }
+
+  if (!summaryData) {
+    return (
+        <View style={[styles.container, styles.centerContent]}>
+            <Text>Preparing dashboard...</Text>
+        </View>
     );
   }
 
@@ -277,7 +273,7 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {!summaryData.hasData && !budgetLoading && (
+      {!budgetLoading && !summaryData.hasData && (
         <View style={[styles.summaryCard, styles.centerContent, {marginTop: 20}]}>
             <Text style={styles.emptyText}>No data available for the selected period.</Text>
         </View>
@@ -337,25 +333,6 @@ export default function DashboardScreen() {
             <View style={styles.summaryCard}>
                 {renderCollapsibleHeader("Visualizations", isChartsCollapsed, () => setIsChartsCollapsed(!isChartsCollapsed))}
                 <Collapsible collapsed={isChartsCollapsed} style={styles.collapsibleContent}>
-                    {summaryData.barChartData.labels.length > 0 ? (
-                        <View style={styles.chartContainer}>
-                            <Text style={styles.chartTitle}>Expenses by Category</Text>
-                            <BarChart
-                                data={summaryData.barChartData}
-                                width={screenWidth - 60}
-                                height={230}
-                                yAxisLabel="$"
-                                chartConfig={chartConfig}
-                                verticalLabelRotation={30}
-                                fromZero={true}
-                                showValuesOnTopOfBars={true}
-                                style={styles.chartStyle}
-                            />
-                        </View>
-                    ) : (
-                        <Text style={styles.emptyChartText}>No expense data for bar chart.</Text>
-                    )}
-
                     {summaryData.pieChartData.length > 0 ? (
                         <View style={styles.chartContainer}>
                             <Text style={styles.chartTitle}>Income vs Expenses</Text>
@@ -364,7 +341,7 @@ export default function DashboardScreen() {
                                 width={screenWidth - 60}
                                 height={220}
                                 chartConfig={chartConfig}
-                                accessor={"amount"}
+                                accessor={"population"}
                                 backgroundColor={"transparent"}
                                 paddingLeft={"15"}
                                 absolute
@@ -372,10 +349,7 @@ export default function DashboardScreen() {
                             />
                         </View>
                     ) : (
-                        <Text style={styles.emptyChartText}>No income/expense data for pie chart.</Text>
-                    )}
-                    {(summaryData.barChartData.labels.length === 0 && summaryData.pieChartData.length === 0) && (
-                         <Text style={styles.emptyText}>No data available for charts in this period.</Text>
+                        !isChartsCollapsed && <Text style={styles.emptyChartText}>No income/expense data for pie chart.</Text>
                     )}
                 </Collapsible>
             </View>

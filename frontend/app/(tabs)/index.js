@@ -199,7 +199,6 @@ export default function EntriesScreen() {
                             <View style={styles.iosPickerModalControls}> 
                                 <RNButton title="Done" onPress={() => {
                                     setShowDatePickerInModal(false); 
-                                    // setDatePickerTargetInModal(null); // Don't nullify, so it remembers 'start' or 'end' if picker is reopened
                                 }} />
                             </View>
                         )}
@@ -207,16 +206,13 @@ export default function EntriesScreen() {
                 )}
 
                 <View style={styles.modalActionsRow}>
-                    <TouchableOpacity onPress={applyDateFiltersFromModal} style={[styles.modalButton, styles.applyButton]} disabled={!modalStartDate || !modalEndDate}>
+                    <TouchableOpacity onPress={applyDateFiltersFromModal} style={[styles.modalButton, styles.applyButton]} disabled={!modalStartDate || !modalEndDate || (modalEndDate < modalStartDate)}>
                         <Text style={styles.modalButtonText}>Apply</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={clearAndCloseDateFilters} style={[styles.modalButton, styles.clearModalButton]}>
                         <Text style={styles.modalButtonText}>Clear & Close</Text>
                     </TouchableOpacity>
                 </View>
-                 <TouchableOpacity onPress={() => setIsDateFilterModalVisible(false)} style={[styles.modalButton, styles.cancelButton, {marginTop: 10}]}>
-                    <Text style={styles.modalButtonText}>Cancel</Text>
-                </TouchableOpacity>
             </View>
         </TouchableOpacity>
       </Modal>
@@ -288,7 +284,6 @@ const styles = StyleSheet.create({
   modalButton: { borderRadius: 8, paddingVertical: 12, paddingHorizontal: 10, elevation: 2, minWidth: 100, alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: 5, },
   applyButton: { backgroundColor: "#2563eb" },
   clearModalButton: { backgroundColor: "#f59e0b" }, 
-  cancelButton: { backgroundColor: "#6b7280" }, 
   modalButtonText: { color: "white", fontWeight: "bold", textAlign: "center", fontSize: 15 },
   
   // Active Filter Info Bar
