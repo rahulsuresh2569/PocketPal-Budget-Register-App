@@ -4,6 +4,7 @@ import {
   createEntry as apiCreateEntry,
   updateEntry as apiUpdateEntry,
   deleteEntry as apiDeleteEntry,
+  getEntryById as apiGetEntryById,
   getCategories as apiGetCategories,
   createCategory as apiCreateCategory,
   getSubjects as apiGetSubjects,
@@ -43,6 +44,25 @@ export const BudgetProvider = ({ children }) => {
     }
   }, []);
 
+  const fetchEntryById = useCallback(async (id) => {
+    console.log(`Attempting to fetch entry by ID: ${id}`);
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await apiGetEntryById(id);
+      console.log("Entry fetched successfully:", response.data);
+      return response.data; // Return the single entry
+    } catch (err) {
+      console.error(`Error fetching entry ${id}:`, err.response ? err.response.data : err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch entry';
+      setError(errorMessage);
+      Alert.alert("Error Fetching Entry", errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Add a new entry
   const addEntry = async (entryData) => {
     console.log("Attempting to add entry:", entryData);
@@ -61,6 +81,49 @@ export const BudgetProvider = ({ children }) => {
       return false; // Indicate failure
     } finally {
       setLoading(false); // Ensure loading is reset
+    }
+  };
+
+  const updateExistingEntry = async (id, entryData) => {
+    console.log(`Attempting to update entry: ${id}`, entryData);
+    setLoading(true);
+    setError(null);
+    try {
+      await apiUpdateEntry(id, entryData);
+      console.log("Entry updated successfully via API.");
+      await fetchEntries(); // Refresh the list
+      return true; // Indicate success
+    } catch (err) {
+      console.error(`Error updating entry ${id}:`, err.response ? err.response.data : err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to update entry';
+      setError(errorMessage);
+      Alert.alert("Error Updating Entry", errorMessage);
+      return false; // Indicate failure
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteExistingEntry = async (id) => {
+    console.log(`Attempting to delete entry: ${id}`);
+    setLoading(true);
+    setError(null);
+    try {
+      await apiDeleteEntry(id);
+      console.log("Entry deleted successfully via API.");
+      await fetchEntries(); // Refresh the list by removing the deleted entry
+      // Or, for a more optimistic update, filter out the entry from state immediately
+      // setEntries(prevEntries => prevEntries.filter(entry => entry._id !== id));
+      Alert.alert("Success", "Entry deleted successfully.");
+      return true; // Indicate success
+    } catch (err) {
+      console.error(`Error deleting entry ${id}:`, err.response ? err.response.data : err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete entry';
+      setError(errorMessage);
+      Alert.alert("Error Deleting Entry", errorMessage);
+      return false; // Indicate failure
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,22 +148,17 @@ export const BudgetProvider = ({ children }) => {
 
   // Fetch subjects for a specific category
   const fetchSubjectsByCategoryId = useCallback(async (categoryId) => {
-    if (!categoryId) return []; // Avoid fetching if categoryId is null or undefined
-    console.log(`Attempting to fetch subjects for category ID: ${categoryId}`);
-    setLoading(true);
-    setError(null);
+    if (!categoryId) return [];
+    console.log(`(Context) Attempting to fetch subjects for category ID: ${categoryId}`);
     try {
       const response = await apiGetSubjects({ categoryId: categoryId });
-      console.log(`Subjects for category ${categoryId} fetched:`, response.data.length);
+      console.log(`(Context) Subjects for category ${categoryId} fetched:`, response.data.length);
       return response.data;
     } catch (err) {
-      console.error(`Error fetching subjects for category ${categoryId}:`, err.response ? err.response.data : err.message);
+      console.error(`(Context) Error fetching subjects for category ${categoryId}:`, err.response ? err.response.data : err.message);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch subjects';
-      setError(errorMessage);
       Alert.alert("Error Fetching Subjects", errorMessage);
       return [];
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -161,10 +219,6 @@ export const BudgetProvider = ({ children }) => {
     }
   };
   
-  // Placeholder for update and delete functions for entries, categories, subjects
-  // const updateExistingEntry = async (id, data) => { ... }
-  // const deleteExistingEntry = async (id) => { ... }
-
   // Initial data fetch
   useEffect(() => {
     console.log("BudgetContext: Initial data fetch effect triggered.");
@@ -180,7 +234,10 @@ export const BudgetProvider = ({ children }) => {
     loading,
     error,
     fetchEntries,
+    fetchEntryById,
     addEntry,
+    updateExistingEntry,
+    deleteExistingEntry,
     fetchCategories,
     fetchSubjectsByCategoryId,
     addCategory,

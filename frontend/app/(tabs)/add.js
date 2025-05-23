@@ -22,8 +22,8 @@ const initialFormState = {
   categoryId: '', // Will now be set by CategoryPicker
   subjectId: '',  // Will now be set by SubjectPicker
   subjectDescription: '', // For optional notes
-  debit: '0',
-  credit: '0',
+  debit: '', // Changed from '0' to ''
+  credit: '', // Changed from '0' to ''
 };
 
 export default function AddEntryScreen() {
@@ -35,12 +35,19 @@ export default function AddEntryScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (name, value) => {
-    // If categoryId changes, reset subjectId because subjects are dependent on category
-    if (name === 'categoryId') {
+    // For numeric fields, allow empty string or valid numbers
+    if (name === 'debit' || name === 'credit') {
+      if (value === '' || /^[0-9]*\.?\d*$/.test(value)) { // Allow empty, numbers, or decimal
+        setFormState(prevState => ({ ...prevState, [name]: value }));
+      } else {
+        // Optionally, revert to previous value or do nothing if input is invalid
+        // For now, this will prevent non-numeric input beyond the initial characters
+      }
+    } else if (name === 'categoryId') {
       setFormState(prevState => ({ 
         ...prevState, 
         [name]: value,
-        subjectId: '' // Reset subject when category changes
+        subjectId: '' 
       }));
     } else {
       setFormState(prevState => ({ ...prevState, [name]: value }));
@@ -56,18 +63,14 @@ export default function AddEntryScreen() {
       Alert.alert('Validation Error', 'Please select a category.');
       return;
     }
-    // Subject is now mandatory (Issue 5)
     if (!formState.subjectId) {
       Alert.alert('Validation Error', 'Please select a subject.');
       return;
     }
-    const debitNum = parseFloat(formState.debit);
-    const creditNum = parseFloat(formState.credit);
+    // Parse debit and credit, defaulting to 0 if empty or invalid
+    const debitNum = parseFloat(formState.debit) || 0;
+    const creditNum = parseFloat(formState.credit) || 0;
 
-    if (isNaN(debitNum) || isNaN(creditNum)) {
-        Alert.alert('Validation Error', 'Debit and Credit must be valid numbers.');
-        return;
-    }
     if (debitNum < 0 || creditNum < 0) {
       Alert.alert('Validation Error', 'Debit and Credit cannot be negative.');
       return;
@@ -82,13 +85,10 @@ export default function AddEntryScreen() {
       date: formState.date.toISOString().split('T')[0],
       categoryId: formState.categoryId,
       subjectId: formState.subjectId,
-      debit: debitNum,
-      credit: creditNum,
-      // Note: subjectDescription is not sent to backend unless model is updated
+      debit: debitNum, // Send the numeric value
+      credit: creditNum, // Send the numeric value
     };
     
-    // The temporary alert for missing IDs is no longer needed if pickers enforce selection.
-
     const success = await addEntry(entryData);
     setIsSubmitting(false);
 
@@ -97,7 +97,6 @@ export default function AddEntryScreen() {
       resetForm();
       router.push('/(tabs)');
     } 
-    // Error is handled by context
   };
 
   const onDateChange = (event, selectedDate) => {
@@ -153,8 +152,8 @@ export default function AddEntryScreen() {
       <Text style={styles.label}>Debit Amount</Text>
       <TextInput
         style={styles.input}
-        placeholder="0.00"
-        value={formState.debit}
+        placeholder="0.00" // Placeholder instead of value='0'
+        value={formState.debit} // Value is now controlled, can be ''
         onChangeText={(text) => handleInputChange('debit', text)}
         keyboardType="numeric"
       />
@@ -162,8 +161,8 @@ export default function AddEntryScreen() {
       <Text style={styles.label}>Credit Amount</Text>
       <TextInput
         style={styles.input}
-        placeholder="0.00"
-        value={formState.credit}
+        placeholder="0.00" // Placeholder instead of value='0'
+        value={formState.credit} // Value is now controlled, can be ''
         onChangeText={(text) => handleInputChange('credit', text)}
         keyboardType="numeric"
       />
