@@ -18,9 +18,9 @@ app.get('/', (req, res) => {
   res.send('Budget App API is running...');
 });
 
-// TODO: Add routes for entries and categories
-// app.use('/api/entries', require('./routes/entryRoutes'));
-// app.use('/api/categories', require('./routes/categoryRoutes'));
+// API Routes
+app.use('/api/entries', require('./routes/entryRoutes'));
+// app.use('/api/categories', require('./routes/categoryRoutes')); // We'll add this next
 
 const PORT = process.env.PORT || 5001; // Use port from .env or default to 5001
 
