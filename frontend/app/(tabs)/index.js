@@ -8,12 +8,24 @@ export default function EntriesScreen() {
   const { entries, loading, error, fetchEntries, deleteExistingEntry } = useBudget();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [entriesWithBalance, setEntriesWithBalance] = useState([]);
 
   useEffect(() => {
-    // fetchEntries is called initially by the context itself.
-    // We could call it here again if specific conditions require it, but often not needed for initial load.
-    // console.log("EntriesScreen mounted. Current entries:", entries.length);
-  }, []);
+    // Calculate running balance when entries change
+    if (entries && entries.length > 0) {
+      // Sort entries by date ascending to calculate balance correctly
+      const sortedEntries = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+      let currentBalance = 0;
+      const calculatedEntries = sortedEntries.map(entry => {
+        currentBalance = currentBalance + entry.credit - entry.debit;
+        return { ...entry, runningBalance: currentBalance };
+      });
+      // Reverse for display (newest first)
+      setEntriesWithBalance(calculatedEntries.reverse());
+    } else {
+      setEntriesWithBalance([]);
+    }
+  }, [entries]);
 
   const onRefresh = useCallback(async () => {
     console.log("Refreshing entries...");
@@ -37,6 +49,12 @@ export default function EntriesScreen() {
     // Example: if (await deleteExistingEntry(entryId)) { onRefresh(); } 
   };
 
+  const navigateToCategoryEntries = (categoryId, categoryName) => {
+    if (categoryId) {
+      router.push({ pathname: '/categoryEntries', params: { categoryId, categoryName } });
+    }
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.entryItem}>
         <View style={styles.entryHeader}>
@@ -50,25 +68,32 @@ export default function EntriesScreen() {
                 </TouchableOpacity>
             </View>
         </View>
-      {/* Display category and subject names. API now populates them. */}
-      <Text style={styles.entryCategory}>
-        {item.category?.name || 'N/A'} - {item.subject?.name || 'N/A'}
-      </Text>
+      <TouchableOpacity onPress={() => navigateToCategoryEntries(item.category?._id, item.category?.name)}>
+        <Text style={styles.entryCategory}>
+          {item.category?.name || 'N/A'} - {item.subject?.name || 'N/A'}
+        </Text>
+      </TouchableOpacity>
       <View style={styles.amountContainer}>
         <Text style={styles.debit}>Debit: {item.debit.toFixed(2)}</Text>
         <Text style={styles.credit}>Credit: {item.credit.toFixed(2)}</Text>
       </View>
       <View style={styles.balanceContainer}>
-        {/* Running balance is complex to calculate here without full list context or backend support for it per item */}
-        {/* For now, let's just show transaction type */}
         <Text style={styles.transactionType}>
             Type: {item.credit > 0 ? 'Income' : 'Expense'}
+        </Text>
+        <Text style={styles.runningBalanceLabel}>Balance: 
+          <Text style={item.runningBalance >= 0 ? styles.positiveBalance : styles.negativeBalance}>
+            {item.runningBalance.toFixed(2)}
+          </Text>
         </Text>
       </View>
     </View>
   );
 
-  if (loading && !refreshing && entries.length === 0) { // Show full screen loader only on initial load
+  // Determine if the main loading indicator should be shown
+  const showInitialLoading = loading && !refreshing && entriesWithBalance.length === 0;
+
+  if (showInitialLoading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color="#2563eb" />
@@ -77,7 +102,7 @@ export default function EntriesScreen() {
     );
   }
 
-  if (error && entries.length === 0) {
+  if (error && entriesWithBalance.length === 0 && !loading) { // Check !loading to prevent showing error during a refresh
     return (
       <View style={[styles.container, styles.centerContent]}>
         <Text style={styles.errorText}>Error fetching entries: {error}</Text>
@@ -91,17 +116,17 @@ export default function EntriesScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={entries}
+        data={entriesWithBalance} // Use entriesWithBalance for display
         renderItem={renderItem}
-        keyExtractor={item => item._id} // Use _id from MongoDB
+        keyExtractor={item => item._id} 
         ListEmptyComponent={() => (
-          !loading && (
+          !loading && !refreshing && (
             <View style={styles.centerContent}>
               <Text style={styles.emptyText}>No entries yet. Pull down to refresh or add one!</Text>
             </View>
           )
         )}
-        refreshControl={ // Added RefreshControl
+        refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#2563eb"]}/>
         }
       />
@@ -155,6 +180,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 6,
+    textDecorationLine: 'underline', // Indicate it's tappable
   },
   amountContainer: {
     flexDirection: 'row',
@@ -173,6 +199,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   balanceContainer: {
+    flexDirection: 'row', // Align items in a row
+    justifyContent: 'space-between', // Space them out
+    alignItems: 'center', // Vertically align items
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
@@ -182,6 +211,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#7f8c8d',
     fontStyle: 'italic',
+  },
+  runningBalanceLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  positiveBalance: {
+    color: '#27ae60', // Green for positive
+  },
+  negativeBalance: {
+    color: '#c0392b', // Red for negative
   },
   emptyText: {
     textAlign: 'center',

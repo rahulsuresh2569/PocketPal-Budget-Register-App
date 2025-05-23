@@ -35,16 +35,19 @@ export const BudgetProvider = ({ children }) => {
       console.log("Entries fetched successfully:", response.data.length);
     } catch (err) {
       console.error("Error fetching entries:", err.response ? err.response.data : err.message);
-      setError(err.response ? err.response.data.message : err.message || 'Failed to fetch entries');
-      Alert.alert("Error", "Could not fetch entries. " + (err.response ? err.response.data.message : err.message));
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch entries';
+      setError(errorMessage);
+      Alert.alert("Error Fetching Entries", errorMessage);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Add a new entry
   const addEntry = async (entryData) => {
     console.log("Attempting to add entry:", entryData);
     setLoading(true);
+    setError(null);
     try {
       await apiCreateEntry(entryData);
       console.log("Entry added successfully via API.");
@@ -52,9 +55,12 @@ export const BudgetProvider = ({ children }) => {
       return true; // Indicate success
     } catch (err) {
       console.error("Error adding entry:", err.response ? err.response.data : err.message);
-      setError(err.response ? err.response.data.message : err.message || 'Failed to add entry');
-      Alert.alert("Error Adding Entry", err.response ? err.response.data.message : err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to add entry';
+      setError(errorMessage);
+      Alert.alert("Error Adding Entry", errorMessage);
       return false; // Indicate failure
+    } finally {
+      setLoading(false); // Ensure loading is reset
     }
   };
 
@@ -62,39 +68,46 @@ export const BudgetProvider = ({ children }) => {
   const fetchCategories = useCallback(async () => {
     console.log("Attempting to fetch categories...");
     setLoading(true);
+    setError(null);
     try {
       const response = await apiGetCategories();
       setCategories(response.data);
       console.log("Categories fetched successfully:", response.data.length);
     } catch (err) {
       console.error("Error fetching categories:", err.response ? err.response.data : err.message);
-      Alert.alert("Error", "Could not fetch categories. " + (err.response ? err.response.data.message : err.message));
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch categories';
+      setError(errorMessage);
+      Alert.alert("Error Fetching Categories", errorMessage);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Fetch subjects for a specific category
   const fetchSubjectsByCategoryId = useCallback(async (categoryId) => {
+    if (!categoryId) return []; // Avoid fetching if categoryId is null or undefined
     console.log(`Attempting to fetch subjects for category ID: ${categoryId}`);
     setLoading(true);
+    setError(null);
     try {
-      const response = await apiGetSubjects({ params: { categoryId } }); // Pass categoryId as query param
-      // Store subjects in a way that they can be accessed by category, e.g., a map or update a filtered list
-      // For simplicity now, just setting all fetched subjects if only one category's subjects are active at a time
-      setSubjects(response.data);
+      const response = await apiGetSubjects({ categoryId: categoryId });
       console.log(`Subjects for category ${categoryId} fetched:`, response.data.length);
-      return response.data; // Return for immediate use if needed
+      return response.data;
     } catch (err) {
       console.error(`Error fetching subjects for category ${categoryId}:`, err.response ? err.response.data : err.message);
-      Alert.alert("Error", `Could not fetch subjects. ` + (err.response ? err.response.data.message : err.message));
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch subjects';
+      setError(errorMessage);
+      Alert.alert("Error Fetching Subjects", errorMessage);
       return [];
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
    // Add a new category
   const addCategory = async (categoryName) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await apiCreateCategory({ name: categoryName });
       await fetchCategories(); // Refresh categories
@@ -102,24 +115,49 @@ export const BudgetProvider = ({ children }) => {
       return response.data; // Return new category
     } catch (err) {
       console.error("Error adding category:", err.response ? err.response.data : err.message);
-      Alert.alert("Error Adding Category", err.response ? err.response.data.message : err.message);
+      let errorMessage = 'Failed to add category. It might already exist or there was a server issue.';
+      if (err.response) {
+        if (err.response.status === 409) {
+          errorMessage = err.response.data.message || "This category name already exists.";
+        } else {
+          errorMessage = err.response.data.message || err.message;
+        }
+      } else {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      Alert.alert("Error Adding Category", errorMessage);
       return null;
+    } finally {
+      setLoading(false);
     }
   };
 
   // Add a new subject to a category
   const addSubject = async (subjectName, categoryId) => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await apiCreateSubject({ name: subjectName, categoryId });
-      // Optionally, refresh subjects for that category if they are being displayed
-      // await fetchSubjectsByCategoryId(categoryId);
+      const response = await apiCreateSubject({ name: subjectName, categoryId: categoryId });
       Alert.alert("Success", "Subject added!");
       return response.data; // Return new subject
     } catch (err) {
       console.error("Error adding subject:", err.response ? err.response.data : err.message);
-      Alert.alert("Error Adding Subject", err.response ? err.response.data.message : err.message);
+      let errorMessage = 'Failed to add subject. It might already exist in this category or there was a server issue.';
+      if (err.response) {
+        if (err.response.status === 409) {
+          errorMessage = err.response.data.message || "This subject name already exists in this category.";
+        } else {
+          errorMessage = err.response.data.message || err.message;
+        }
+      } else {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      Alert.alert("Error Adding Subject", errorMessage);
       return null;
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -133,12 +171,12 @@ export const BudgetProvider = ({ children }) => {
     fetchEntries();
     fetchCategories();
     // Don't fetch all subjects initially, only when a category is selected
-  }, [fetchEntries, fetchCategories]);
+  }, [fetchEntries, fetchCategories]); // Dependencies are correct
 
   const value = {
     entries,
     categories,
-    subjects, // This will hold subjects, likely filtered by a selected category
+    subjects,
     loading,
     error,
     fetchEntries,
@@ -147,8 +185,6 @@ export const BudgetProvider = ({ children }) => {
     fetchSubjectsByCategoryId,
     addCategory,
     addSubject,
-    // updateExistingEntry, // Add later
-    // deleteExistingEntry  // Add later
   };
 
   return (

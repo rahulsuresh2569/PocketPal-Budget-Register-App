@@ -14,6 +14,7 @@ const SubjectPicker = ({ categoryId, selectedValue, onValueChange, style, enable
 
   const loadSubjects = useCallback(async () => {
     if (categoryId) {
+      setLocalSubjects([]);
       setIsLoading(true);
       const fetchedSubjects = await fetchSubjectsByCategoryId(categoryId);
       setLocalSubjects(fetchedSubjects || []);

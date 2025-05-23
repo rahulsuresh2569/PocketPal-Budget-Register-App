@@ -47,15 +47,27 @@ const createSubject = async (req, res) => {
 // @access  Public
 const getSubjects = async (req, res) => {
   try {
-    const { categoryId } = req.query;
+    const receivedCategoryId = req.query.categoryId;
+    console.log(`[getSubjects] Received categoryId from query: '${receivedCategoryId}', type: ${typeof receivedCategoryId}`);
+
     let query = {};
-    if (categoryId) {
-      query.category = categoryId;
+    // Ensure categoryId is a non-empty string before applying the filter
+    if (receivedCategoryId && typeof receivedCategoryId === 'string' && receivedCategoryId.trim().length > 0) {
+      query.category = receivedCategoryId.trim();
+      console.log(`[getSubjects] Applying filter for category: ${query.category}`);
+    } else {
+      console.log('[getSubjects] No valid categoryId provided or categoryId is empty, will fetch all subjects (if any).');
+      // If no categoryId, query remains empty {}, so all subjects will be fetched.
+      // Depending on requirements, you might want to return an error or empty array if categoryId is expected but invalid.
     }
+
+    console.log(`[getSubjects] Executing Subject.find() with query:`, JSON.stringify(query));
     const subjects = await Subject.find(query).populate('category', 'name').sort({ name: 1 });
+    console.log(`[getSubjects] Found ${subjects.length} subjects with the query.`);
+
     res.status(200).json(subjects);
   } catch (error) {
-    console.error('Error fetching subjects:', error.message);
+    console.error('[getSubjects] Error fetching subjects:', error.message);
     res.status(500).json({ message: 'Server error while fetching subjects' });
   }
 };
