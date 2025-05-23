@@ -6,14 +6,14 @@ const entrySchema = new mongoose.Schema({
     required: [true, 'Date is required']
   },
   category: {
-    type: String,
-    required: [true, 'Category is required'],
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: [true, 'Category is required']
   },
   subject: {
-    type: String,
-    trim: true,
-    default: '' // Optional, defaults to empty string
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject',
+    required: [true, 'Subject is required']
   },
   debit: {
     type: Number,

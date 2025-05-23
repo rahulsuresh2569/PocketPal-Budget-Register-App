@@ -21,6 +21,7 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/entries', require('./routes/entryRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/subjects', require('./routes/subjectRoutes'));
 
 const PORT = process.env.PORT || 5001; // Use port from .env or default to 5001
 

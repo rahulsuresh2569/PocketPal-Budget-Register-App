@@ -27,4 +27,11 @@ export const getCategoryById = (id) => apiClient.get(`/categories/${id}`); // Op
 export const updateCategory = (id, categoryData) => apiClient.put(`/categories/${id}`, categoryData);
 export const deleteCategory = (id) => apiClient.delete(`/categories/${id}`);
 
+// Subject CRUD operations
+export const getSubjects = (params) => apiClient.get('/subjects', { params }); // e.g., params = { categoryId: 'someId' }
+export const getSubjectById = (id) => apiClient.get(`/subjects/${id}`);
+export const createSubject = (subjectData) => apiClient.post('/subjects', subjectData);
+export const updateSubject = (id, subjectData) => apiClient.put(`/subjects/${id}`, subjectData);
+export const deleteSubject = (id) => apiClient.delete(`/subjects/${id}`);
+
 export default apiClient; 

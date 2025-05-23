@@ -1,28 +1,36 @@
 const Entry = require('../models/Entry');
+const Category = require('../models/Category'); // For validation if needed
+const Subject = require('../models/Subject');   // For validation if needed
 
 // @desc    Create a new budget entry
 // @route   POST /api/entries
 // @access  Public (for now, will be Private with auth)
 const createEntry = async (req, res) => {
   try {
-    const { date, category, subject, debit, credit } = req.body;
+    const { date, categoryId, subjectId, debit, credit, subject: subjectName, category: categoryName } = req.body;
+
+    // Validate that categoryId and subjectId are provided and are valid ObjectIds
+    // For now, the model schema will do basic required validation.
+    // More advanced validation (e.g., checking if the Subject belongs to the Category) can be added.
 
     // Basic validation
     if (debit < 0 || credit < 0) {
         return res.status(400).json({ message: 'Debit and Credit amounts cannot be negative.' });
     }
-    // You could add a check here: if (debit === 0 && credit === 0) { /* return error */ }
 
     const entry = new Entry({
       date,
-      category,
-      subject,
+      category: categoryId, // Expecting ObjectId from frontend
+      subject: subjectId,   // Expecting ObjectId from frontend
       debit,
       credit
     });
 
     const createdEntry = await entry.save();
-    res.status(201).json(createdEntry);
+    // Populate category and subject details before sending response
+    const populatedEntry = await Entry.findById(createdEntry._id).populate('category', 'name').populate('subject', 'name');
+    res.status(201).json(populatedEntry);
+
   } catch (error) {
     console.error('Error creating entry:', error.message);
     if (error.name === 'ValidationError') {
@@ -37,7 +45,11 @@ const createEntry = async (req, res) => {
 // @access  Public
 const getEntries = async (req, res) => {
   try {
-    const entries = await Entry.find({}).sort({ date: -1 }); // Sort by date descending
+    // Populate category and subject names when fetching entries
+    const entries = await Entry.find({})
+                               .populate('category', 'name') // field to populate, fields to select from populated doc
+                               .populate('subject', 'name')
+                               .sort({ date: -1 }); 
     res.status(200).json(entries);
   } catch (error) {
     console.error('Error fetching entries:', error.message);
@@ -50,7 +62,9 @@ const getEntries = async (req, res) => {
 // @access  Public
 const getEntryById = async (req, res) => {
   try {
-    const entry = await Entry.findById(req.params.id);
+    const entry = await Entry.findById(req.params.id)
+                             .populate('category', 'name')
+                             .populate('subject', 'name');
     if (entry) {
       res.status(200).json(entry);
     } else {
@@ -70,23 +84,26 @@ const getEntryById = async (req, res) => {
 // @access  Public
 const updateEntry = async (req, res) => {
   try {
-    const { date, category, subject, debit, credit } = req.body;
+    const { date, categoryId, subjectId, debit, credit, subject: subjectName, category: categoryName } = req.body;
 
-    // Basic validation
-    if (debit < 0 || credit < 0) {
-        return res.status(400).json({ message: 'Debit and Credit amounts cannot be negative.' });
+    if (debit !== undefined && debit < 0) {
+        return res.status(400).json({ message: 'Debit amount cannot be negative.' });
+    }
+    if (credit !== undefined && credit < 0) {
+        return res.status(400).json({ message: 'Credit amount cannot be negative.' });
     }
 
     const entry = await Entry.findById(req.params.id);
 
     if (entry) {
       entry.date = date || entry.date;
-      entry.category = category || entry.category;
-      entry.subject = subject !== undefined ? subject : entry.subject; // Allow empty string for subject
+      entry.category = categoryId || entry.category; // Expecting ObjectId
+      entry.subject = subjectId || entry.subject;   // Expecting ObjectId
       entry.debit = debit !== undefined ? debit : entry.debit;
       entry.credit = credit !== undefined ? credit : entry.credit;
 
-      const updatedEntry = await entry.save();
+      const savedEntry = await entry.save();
+      const updatedEntry = await Entry.findById(savedEntry._id).populate('category', 'name').populate('subject', 'name');
       res.status(200).json(updatedEntry);
     } else {
       res.status(404).json({ message: 'Entry not found' });
@@ -111,9 +128,6 @@ const deleteEntry = async (req, res) => {
     const entry = await Entry.findById(req.params.id);
 
     if (entry) {
-      // In Mongoose 5.x and earlier, entry.remove() was used.
-      // In Mongoose 6.x and later, Model.deleteOne() or Model.findByIdAndDelete() are preferred ways to delete.
-      // However, if you have the document instance, document.deleteOne() is the modern way.
       await entry.deleteOne(); 
       res.status(200).json({ message: 'Entry removed successfully' });
     } else {
