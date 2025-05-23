@@ -1,0 +1,13 @@
+# Node.js
+node_modules/
+npm-debug.log*
+*.log
+.env
+
+# Optional: Editor/IDE specific files
+.vscode/
+.idea/
+
+# Optional: OS generated files
+.DS_Store
+Thumbs.db 
