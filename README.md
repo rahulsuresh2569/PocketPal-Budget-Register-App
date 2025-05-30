@@ -19,6 +19,24 @@ Many people struggle to keep track of their daily spending, understand where the
 
 ---
 
+## 📸 Screenshots
+
+Here's a glimpse of PocketPal in action:
+
+**Entries List:**
+![Entries Page](./resources/entries_page.jpg)
+
+**Add New Entry:**
+![Add Entry Page](./resources/add_entry_page.jpg)
+
+**Summary Dashboard (Example):**
+![Summary Dashboard](./resources/summary_dashboard_page.jpg)
+
+**Spending Bar Graph (Example):**
+![Spending Bar Graph](./resources/bar_graph.jpg)
+
+---
+
 ## ✨ Core Features
 
 *   **Entries Dashboard:** View all your financial entries (date, category, subject, debit/credit) in one place.
