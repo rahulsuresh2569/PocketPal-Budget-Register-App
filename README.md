@@ -2,7 +2,6 @@
 
 PocketPal is a personal budget management application designed to help users track their income and expenses, offering a clear view of their financial habits. To be honest, I created this mobile app for my grandpa who faced difficulties in managing his expenses manually :) - he used to write down the expenses and used a calculator.  
 
----
 
 ## 🎯 What It Does & Why It's Useful
 
@@ -16,8 +15,7 @@ Many people struggle to keep track of their daily spending, understand where the
 
 ## 🎬 App Demo
 
-*(Here you will embed your GIF. For example:)*
-`![FinFlow Mobile Demo GIF](link_to_your_gif.gif)`
+![FinFlow Mobile Demo GIF](./resources/pocketpal_demo.gif.gif)
 
 ---
 
