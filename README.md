@@ -24,16 +24,16 @@ Many people struggle to keep track of their daily spending, understand where the
 Here's a glimpse of PocketPal in action:
 
 **Entries List:**
-![Entries Page](./resources/entries_page.jpg)
+<img src="./resources/entries_page.jpg" alt="Entries Page" width="200"/>
 
 **Add New Entry:**
-![Add Entry Page](./resources/add_entry_page.jpg)
+<img src="./resources/add_entry_page.jpg" alt="Add Entry Page" width="200"/>
 
 **Summary Dashboard (Example):**
-![Summary Dashboard](./resources/summary_dashboard_page.jpg)
+<img src="./resources/summary_dashboard_page.jpg" alt="Summary Dashboard" width="200"/>
 
 **Spending Bar Graph (Example):**
-![Spending Bar Graph](./resources/bar_graph.jpg)
+<img src="./resources/bar_graph.jpg" alt="Spending Bar Graph" width="200"/>
 
 ---
 
