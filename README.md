@@ -15,7 +15,9 @@ Many people struggle to keep track of their daily spending, understand where the
 
 ## 🎬 App Demo
 
-![FinFlow Mobile Demo GIF](./resources/pocketpal_demo.gif)
+<div align="center">
+  <img src="./resources/pocketpal_demo.gif" alt="PocketPal Demo GIF" width="300"/>
+</div>
 
 ---
 
